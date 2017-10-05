@@ -24,6 +24,10 @@ namespace StockSharp.BitFinex
         private SecureString _key;
         private SecureString _secret;
         private int? _clientId;
+        private long _lookupSecuritiesId = 0;
+        private long _lookupPortfoliosId = 0;
+
+        
 
         public SecureString Key
         {
@@ -200,13 +204,13 @@ namespace StockSharp.BitFinex
 
             var secMsg = new SecurityMessage
             {
-                PriceStep = priceStep.ToDecimal(),
+                PriceStep =Convert.ToDecimal( priceStep.ToDecimal()),
                 Decimals = decimals,
                 Multiplier = lotSize,
                 Name = name,
                 ShortName = name,
-                ExpiryDate = expDate == null ? (DateTimeOffset?)null : expDate.Value.ApplyTimeZone(TimeHelper.EST),
-                ExtensionInfo = new Dictionary<object, object>
+                ExpiryDate = expDate == null ? (DateTimeOffset?)null : expDate.Value.ApplyTimeZone(TimeHelper.Est),
+                ExtensionInfo = new Dictionary<string, object>
                 {
                     { "Class", secClass }
                 },
@@ -246,8 +250,11 @@ namespace StockSharp.BitFinex
             SendOutMessage(new PortfolioMessage
             {
                 PortfolioName = portfolioName,
-                BoardCode = PortfolioBoardCodes.TryGetValue(portfolioExch),
-                ExtensionInfo = new Dictionary<object, object>
+                BoardCode = "BoardCode",
+                ExtensionInfo = new Dictionary<string, object>
+                {
+                    { "PortfolioStatus", "status" }
+                }
             });
 
             if ((row + 1) < nrows)
@@ -301,9 +308,9 @@ namespace StockSharp.BitFinex
                 }
             }
         }
-        private void IBSocket_NewTick(string contractId, System.DateTime time, double price, double volume, string tradeId)
+        private void IBSocket_NewTick(int contractId, System.DateTime time, double price, double volume, string tradeId)
         {
-            SendOutMessage(CreateTrade(contractId, time, price.ToDecimal(), volume.ToDecimal(), tradeId.To<long>(), action));
+            SendOutMessage(CreateTrade(contractId, time, price.ToDecimal(), volume.ToDecimal(), tradeId.To<long>()));
         }
 
         private static ExecutionMessage CreateTrade(long contractId, DateTime time, decimal? price, decimal? volume, long tradeId)
@@ -313,8 +320,8 @@ namespace StockSharp.BitFinex
                 SecurityId = new SecurityId { NativeAsInt = contractId },
                 TradeId = tradeId,
                 TradePrice = price,
-                Volume = volume,
-                ServerTime = time.ApplyTimeZone(TimeHelper.EST),
+                TradeVolume = volume,
+                ServerTime = time.ApplyTimeZone(TimeHelper.Est),
                 ExecutionType = ExecutionTypes.Tick
             };
         }
@@ -335,4 +342,14 @@ namespace StockSharp.BitFinex
             this.ClientId = storage.GetValue<int?>("ClientId", new int?());
         }
     }
+    public static class MyExtensions
+    {
+        public static decimal ToDecimal(this double original)
+        {
+
+            return Convert.ToDecimal(original);
+           
+        }
+    }
+
 }
